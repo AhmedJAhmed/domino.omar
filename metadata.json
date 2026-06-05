@@ -1,0 +1,6 @@
+{
+  "name": "دومينو عمر الهاشم",
+  "description": "تطبيق متكامل ومتطور لتسجيل وتقييد نقاط لعبة الدومينو بنظام عمر الهاشم، يتميز بواجهة عصرية سهلة الاستخدام، دعم الوضع الداكن، سجل جولات مفصل، وإحصائيات مباشرة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
