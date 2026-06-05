@@ -21,7 +21,8 @@ import {
   Check, 
   Sparkles,
   HelpCircle,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { playScoreSound, playUndoSound, playVictorySound, speakArabic } from './utils/audio';
@@ -121,6 +122,50 @@ export default function App() {
   // Input elements refs for auto-focus control
   const input1Ref = useRef<HTMLInputElement>(null);
   const input2Ref = useRef<HTMLInputElement>(null);
+
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Check if app is already running in standalone (PWA) mode
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    if (isStandalone) {
+      return;
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Save the event so it can be triggered later
+      setDeferredPrompt(e);
+      // Update UI to show the install button
+      setShowInstallButton(true);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setShowInstallButton(false);
+      console.log('DOMINO App was installed successfully!');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User choice outcome: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
+  };
 
   // -------------------------------------------------------------
   // Persistent Storage Sync
@@ -390,6 +435,45 @@ export default function App() {
          ------------------------------------------------------------- */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col gap-5 pb-24 md:pb-8">
         
+        {/* PWA Custom Install Banner */}
+        <AnimatePresence>
+          {showInstallButton && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, y: -15 }}
+              animate={{ opacity: 1, height: 'auto', y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -15 }}
+              className="overflow-hidden"
+            >
+              <div id="pwa-install-banner" className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-600 text-white p-4 rounded-2xl flex items-center justify-between shadow-md border border-indigo-500/20 gap-4 mb-1">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white/10 rounded-xl">
+                    <Download size={22} className="text-indigo-100 animate-bounce" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm md:text-base">تثبيت تطبيق دومينو عمر</h3>
+                    <p className="text-[11px] text-indigo-150 mt-0.5 leading-relaxed">ثبّت التطبيق على جهازك للوصول السريع والعمل دون اتصال بالإنترنت!</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleInstallClick}
+                    className="bg-white text-indigo-700 font-bold text-xs px-4 py-2 rounded-xl hover:bg-indigo-50 active:scale-95 transition-all shadow-sm"
+                  >
+                    تثبيت الآن
+                  </button>
+                  <button
+                    onClick={() => setShowInstallButton(false)}
+                    className="p-2 hover:bg-white/10 rounded-xl text-white/80 hover:text-white transition-all"
+                    title="تجاهل"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Active tab content router */}
         <AnimatePresence mode="wait">
           {activeTab === 'play' && (
@@ -928,6 +1012,25 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* Installer Settings Option if installable */}
+              {deferredPrompt && (
+                <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50/60 dark:from-indigo-950/30 dark:to-blue-950/20 border border-indigo-100/60 dark:border-indigo-900/40 rounded-2xl flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3" dir="rtl">
+                    <Download className="text-indigo-600 dark:text-indigo-400 shrink-0 animate-pulse" size={20} />
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-indigo-950 dark:text-indigo-200 block">إضافة لسطح المكتب</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">تثبيت اللعبة كتطبيق كامل على جهازك مباشرة.</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleInstallClick}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all active:scale-95 shadow-sm"
+                  >
+                    تثبيت التطبيق
+                  </button>
+                </div>
+              )}
 
               {/* Game Rules / Hints */}
               <div className="bg-indigo-50/45 dark:bg-indigo-950/20 rounded-2xl p-4 border border-indigo-100/30 dark:border-indigo-900/10 flex items-start gap-3">
